@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { initRender } from "@/lib/render";
+import { initRender } from "@/space-control/render";
 
 export default function Observatory() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

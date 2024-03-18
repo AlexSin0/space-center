@@ -1,13 +1,12 @@
 import * as THREE from "three";
 import { Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { mapToVec3 } from "./3d-utils";
-import coastline from "@/map/coastline50.json";
+import coastline from "./maps/coastline.json";
+import { mapToVec3, meshFromPath } from "./3d-utils";
+import { Satellite } from "./Satellite";
+import { EARTH_RADIUS } from "./3d-utils";
 
 const scene = new THREE.Scene();
-
-const EARTH_RADIUS = 6_371_000 / 10 ** 6; // *10^6 m
-const EARTH_G = 9.81 / 10 ** 6;
 
 export function initRender(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({ canvas: canvas });
@@ -30,32 +29,58 @@ export function initRender(canvas: HTMLCanvasElement) {
   //scene.add(gridHelper, axesHelper);
 
   // setup
-
   blueMarble();
 
-  const orbitPath = simOrbit(
-    new Vector3(10, 0, 0),
-    new Vector3(0.01, 0.0, 0.04)
+  const probe = new Satellite(
+    new Vector3(12, 1, 1),
+    new Vector3(0.01, 0.01, 0.04)
   );
-  const orbitMat = new THREE.LineBasicMaterial({ color: "#F00" });
-  const orbitGeom = new THREE.BufferGeometry().setFromPoints(orbitPath);
-  const orbitMesh = new THREE.Line(orbitGeom, orbitMat);
-  scene.add(orbitMesh);
 
-  const orbitPath2 = simOrbit(
-    new Vector3(1, 8, 0),
-    new Vector3(0.0, 0.01, 0.03)
-  );
-  const orbitMat2 = new THREE.LineBasicMaterial({ color: "#FF0" });
-  const orbitGeom2 = new THREE.BufferGeometry().setFromPoints(orbitPath2);
-  const orbitMesh2 = new THREE.Line(orbitGeom2, orbitMat2);
-  scene.add(orbitMesh2);
+  const probeMat = new THREE.MeshBasicMaterial({
+    color: "#F00",
+    wireframe: true,
+  });
+  const probeGeom = new THREE.CylinderGeometry(0.5, 0.5, 1, 6);
+  const probeMesh = new THREE.Mesh(probeGeom, probeMat);
+
+  probeMesh.position.copy(probe.pos);
+
+  scene.add(probeMesh);
+
+  function orbitTest(
+    iterations = 80,
+    step = 35,
+    color: THREE.ColorRepresentation = "#F00"
+  ) {
+    probe.calcOrbit(iterations, step);
+    const orbitPath = probe.orbit!;
+    const orbitMesh = meshFromPath(orbitPath, color);
+
+    const apoapsisMesh = meshFromPath([probe.apoapsis!, new Vector3()], "#F80");
+    const periapsisMesh = meshFromPath(
+      [probe.periapsis!, new Vector3()],
+      "#80F"
+    );
+
+    scene.add(orbitMesh, apoapsisMesh, periapsisMesh);
+  }
+
+  orbitTest(300, 10, "#F00");
 
   // update
+  let lastTime = 0;
+  let deltaTime = 0;
+
   function animate(time: number) {
     requestAnimationFrame(animate);
 
-    //console.log(time);
+    deltaTime = time - lastTime;
+    lastTime = time;
+
+    console.log(deltaTime);
+
+    probe.sim(2);
+    probeMesh.position.copy(probe.pos);
 
     renderer.render(scene, camera);
   }
@@ -63,21 +88,7 @@ export function initRender(canvas: HTMLCanvasElement) {
   animate(0);
 }
 
-function simOrbit(pos: Vector3, velocity: Vector3, iterations = 80, step = 35) {
-  const orbitPath: Vector3[] = [];
-  orbitPath.push(structuredClone(pos));
-
-  for (let i = 0; i < iterations; i++) {
-    velocity.addScaledVector(pos, -EARTH_G * step);
-    pos.addScaledVector(velocity, step);
-    orbitPath.push(structuredClone(pos));
-  }
-
-  return orbitPath;
-}
-
 function blueMarble() {
-  const basicMat = new THREE.MeshBasicMaterial({ color: "#000" });
   const lineMat = new THREE.LineBasicMaterial({ color: "#0F0" });
   const wireMat = new THREE.MeshBasicMaterial({
     color: "#035",
