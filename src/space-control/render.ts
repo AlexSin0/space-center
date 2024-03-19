@@ -11,6 +11,7 @@ const scene = new THREE.Scene();
 export function initRender(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({ canvas: canvas });
   renderer.setPixelRatio(window.devicePixelRatio);
+
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   const camera = new THREE.PerspectiveCamera(
@@ -77,7 +78,7 @@ export function initRender(canvas: HTMLCanvasElement) {
     deltaTime = time - lastTime;
     lastTime = time;
 
-    console.log(deltaTime);
+    // console.log(deltaTime);
 
     probe.sim(2);
     probeMesh.position.copy(probe.pos);
