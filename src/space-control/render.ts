@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import coastline from "./maps/coastline.json";
-import { mapToVec3, meshFromPath } from "./3d-utils";
+import coastline from "./maps/coastline50.json";
+import { mapToVec3 } from "./3d-utils";
 import { Satellite } from "./Satellite";
 import { EARTH_RADIUS } from "./3d-utils";
 
@@ -24,6 +24,8 @@ export function initRender(canvas: HTMLCanvasElement) {
 
   // dev
   const controls = new OrbitControls(camera, renderer.domElement);
+  controls.update();
+  controls.minDistance = EARTH_RADIUS + 0.1;
 
   const gridHelper = new THREE.GridHelper(50, 10);
   const axesHelper = new THREE.AxesHelper(16);
@@ -32,45 +34,47 @@ export function initRender(canvas: HTMLCanvasElement) {
   // setup
   blueMarble();
 
-  const probe = new Satellite(
-    new Vector3(12, 1, 1),
-    new Vector3(0.01, 0.01, 0.04)
-  );
-
   const probeMat = new THREE.MeshBasicMaterial({
     color: "#F00",
     wireframe: true,
   });
   const probeGeom = new THREE.CylinderGeometry(0.5, 0.5, 1, 6);
-  const probeMesh = new THREE.Mesh(probeGeom, probeMat);
 
-  probeMesh.position.copy(probe.pos);
+  const probe = new Satellite(
+    new Vector3(12, 1, 1),
+    new Vector3(0.01, 0.01, 0.04),
+    new THREE.Mesh(probeGeom, probeMat)
+  );
 
-  scene.add(probeMesh);
+  scene.add(probe.mesh);
 
-  function orbitTest(
-    iterations = 80,
-    step = 35,
-    color: THREE.ColorRepresentation = "#F00"
-  ) {
-    probe.calcOrbit(iterations, step);
-    const orbitPath = probe.orbit!;
-    const orbitMesh = meshFromPath(orbitPath, color);
-
-    const apoapsisMesh = meshFromPath([probe.apoapsis!, new Vector3()], "#F80");
-    const periapsisMesh = meshFromPath(
-      [probe.periapsis!, new Vector3()],
-      "#80F"
-    );
-
-    scene.add(orbitMesh, apoapsisMesh, periapsisMesh);
-  }
-
-  orbitTest(300, 10, "#F00");
+  probe.orbit.init(scene, "#F00");
 
   // update
   let lastTime = 0;
   let deltaTime = 0;
+
+  class Timer {
+    constructor(public every: number, public cb: () => void) {}
+
+    public counter = 0;
+
+    public add(count: number) {
+      this.counter += count;
+      if (this.counter >= this.every) {
+        this.counter -= this.every;
+        this.cb.call(this);
+      }
+    }
+  }
+
+  let wMult = 1;
+  const orbitWiggler = new Timer(4000, () => {
+    probe.velocity.y += 0.01 * wMult;
+    wMult *= -1;
+
+    probe.orbit.init(scene, "#F00");
+  });
 
   function animate(time: number) {
     requestAnimationFrame(animate);
@@ -78,10 +82,8 @@ export function initRender(canvas: HTMLCanvasElement) {
     deltaTime = time - lastTime;
     lastTime = time;
 
-    // console.log(deltaTime);
-
+    orbitWiggler.add(deltaTime);
     probe.sim(2);
-    probeMesh.position.copy(probe.pos);
 
     renderer.render(scene, camera);
   }
@@ -102,7 +104,7 @@ function blueMarble() {
 
   const baseMat = new THREE.MeshBasicMaterial({
     color: "#000",
-    transparent: true,
+    transparent: false,
     opacity: 0.6,
   });
   const baseGeom = new THREE.SphereGeometry(EARTH_RADIUS - 0.1);

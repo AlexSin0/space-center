@@ -1,16 +1,24 @@
-import { Vector3 } from "three";
+import { Vector3, Mesh } from "three";
 import { EARTH_G } from "./3d-utils";
+import { Orbit } from "./Orbit";
 
 export class Satellite {
-  constructor(public pos: Vector3, public velocity: Vector3) {}
+  constructor(
+    public pos: Vector3,
+    public velocity: Vector3,
+    public mesh: Mesh
+  ) {
+    mesh.position.copy(pos);
+    this.orbit = new Orbit(this);
+  }
 
-  public orbit?: Vector3[];
-  public apoapsis?: Vector3;
-  public periapsis?: Vector3;
+  public orbit: Orbit;
 
   public sim(deltaTime: number) {
     this.velocity.addScaledVector(this.pos, -EARTH_G * deltaTime);
     this.pos.addScaledVector(this.velocity, deltaTime);
+
+    this.mesh.position.copy(this.pos);
   }
 
   public simOrbit(iterations = 80, step = 35) {
@@ -27,33 +35,5 @@ export class Satellite {
     }
 
     return orbitPath;
-  }
-
-  public calcOrbit(iterations = 80, step = 35) {
-    const _pos = this.pos.clone();
-    const _velocity = this.velocity.clone();
-
-    const orbitPath: Vector3[] = [];
-    orbitPath.push(_pos.clone());
-
-    let max = 0;
-    let min = Infinity;
-
-    for (let i = 0; i < iterations; i++) {
-      _velocity.addScaledVector(_pos, -EARTH_G * step);
-      _pos.addScaledVector(_velocity, step);
-      orbitPath.push(_pos.clone());
-
-      const dist = _pos.length();
-      if (dist > max) {
-        max = dist;
-        this.apoapsis = _pos.clone();
-      } else if (dist < min) {
-        min = dist;
-        this.periapsis = _pos.clone();
-      }
-    }
-
-    this.orbit = orbitPath;
   }
 }
