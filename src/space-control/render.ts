@@ -2,25 +2,40 @@ import * as THREE from "three";
 import { Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import coastline from "./maps/coastline50.json";
-import { mapToVec3 } from "./3d-utils";
+import { mapToVec3, Timer, stats } from "./3d-utils";
 import { Satellite } from "./Satellite";
 import { EARTH_RADIUS } from "./3d-utils";
 
 const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30);
 
-export function initRender(canvas: HTMLCanvasElement) {
-  const renderer = new THREE.WebGLRenderer({ canvas: canvas });
-  renderer.setPixelRatio(window.devicePixelRatio);
+const pointer = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
 
-  renderer.setSize(window.innerWidth, window.innerHeight);
+const probeGeom = new THREE.CylinderGeometry(0.5, 0.5, 1, 6);
+const probeMat = new THREE.MeshBasicMaterial({
+  color: "#F00",
+  wireframe: true,
+});
 
-  const camera = new THREE.PerspectiveCamera(
-    30,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
+const selectedProbeMat = new THREE.MeshBasicMaterial({
+  color: "#FFF",
+  wireframe: true,
+});
+
+const probe = new Satellite(
+  new Vector3(12, 1, 1),
+  new Vector3(0.01, 0.01, 0.04),
+  new THREE.Mesh(probeGeom, probeMat)
+);
+
+function setup(renderer: THREE.Renderer) {
+  // setup
   camera.position.setZ(30);
+  blueMarble();
+
+  scene.add(probe.mesh);
+  probe.orbit.init(scene, "#F00");
 
   // dev
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -29,66 +44,29 @@ export function initRender(canvas: HTMLCanvasElement) {
 
   const gridHelper = new THREE.GridHelper(50, 10);
   const axesHelper = new THREE.AxesHelper(16);
-  //scene.add(gridHelper, axesHelper);
+  // scene.add(gridHelper, axesHelper);
+}
 
-  // setup
-  blueMarble();
-
-  const probeMat = new THREE.MeshBasicMaterial({
-    color: "#F00",
-    wireframe: true,
-  });
-  const probeGeom = new THREE.CylinderGeometry(0.5, 0.5, 1, 6);
-
-  const probe = new Satellite(
-    new Vector3(12, 1, 1),
-    new Vector3(0.01, 0.01, 0.04),
-    new THREE.Mesh(probeGeom, probeMat)
-  );
-
-  scene.add(probe.mesh);
+let wiggleMult = 1;
+const orbitWiggler = new Timer(4000, () => {
+  probe.velocity.y += 0.01 * wiggleMult;
+  wiggleMult *= -1;
 
   probe.orbit.init(scene, "#F00");
+});
 
-  // update
-  let lastTime = 0;
-  let deltaTime = 0;
+function update(time: number, deltaTime: number) {
+  orbitWiggler.add(deltaTime);
+  probe.sim(2);
 
-  class Timer {
-    constructor(public every: number, public cb: () => void) {}
+  raycaster.setFromCamera(pointer, camera);
+  const intersects = raycaster.intersectObjects([probe.mesh], false);
 
-    public counter = 0;
-
-    public add(count: number) {
-      this.counter += count;
-      if (this.counter >= this.every) {
-        this.counter -= this.every;
-        this.cb.call(this);
-      }
-    }
+  if (intersects.some((v) => v.object == probe.mesh)) {
+    probe.mesh.material = selectedProbeMat;
+  } else {
+    probe.mesh.material = probeMat;
   }
-
-  let wMult = 1;
-  const orbitWiggler = new Timer(4000, () => {
-    probe.velocity.y += 0.01 * wMult;
-    wMult *= -1;
-
-    probe.orbit.init(scene, "#F00");
-  });
-
-  function animate(time: number) {
-    requestAnimationFrame(animate);
-
-    deltaTime = time - lastTime;
-    lastTime = time;
-
-    orbitWiggler.add(deltaTime);
-    probe.sim(2);
-
-    renderer.render(scene, camera);
-  }
-
-  animate(0);
 }
 
 function blueMarble() {
@@ -121,4 +99,41 @@ function blueMarble() {
     return line;
   });
   scene.add(...lines);
+}
+
+export function initRender(canvas: HTMLCanvasElement) {
+  const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  function resizeCanvas() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  window.addEventListener("resize", resizeCanvas, false);
+  resizeCanvas();
+
+  document.addEventListener("mousemove", (event) => {
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  });
+
+  let lastTime = 0;
+  let deltaTime = 0;
+
+  function animate(time: number) {
+    requestAnimationFrame(animate);
+    deltaTime = time - lastTime;
+    lastTime = time;
+
+    update(time, deltaTime);
+
+    stats.update();
+    renderer.render(scene, camera);
+  }
+
+  setup(renderer);
+  animate(0);
 }

@@ -26,3 +26,22 @@ export function meshFromPath(
   const mesh = new THREE.Line(geom, mat);
   return mesh;
 }
+
+export class Timer {
+  constructor(public every: number, public cb: () => void) {}
+
+  public counter = 0;
+
+  public add(count: number) {
+    this.counter += count;
+    if (this.counter >= this.every) {
+      this.counter -= this.every;
+      this.cb.call(this);
+    }
+  }
+}
+
+import Stats from "three/addons/libs/stats.module.js";
+
+export const stats = new Stats();
+document.body.appendChild(stats.dom);
