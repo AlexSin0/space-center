@@ -1,10 +1,10 @@
 import * as THREE from "three";
 import { Vector3 } from "three";
 
-export const SCALE = 10 ** -6;
+export const SCALE = 10 ** 6;
 
-export const EARTH_RADIUS = 6_371_000 * SCALE;
-export const EARTH_G = 9.81 * SCALE;
+export const EARTH_RADIUS = 6_371_000 / SCALE;
+export const EARTH_G = 9.81 / SCALE;
 
 export function mapToVec3(lat: number, lon: number, radius: number) {
   var phi = (lat * Math.PI) / 180;
@@ -40,8 +40,3 @@ export class Timer {
     }
   }
 }
-
-import Stats from "three/addons/libs/stats.module.js";
-
-export const stats = new Stats();
-document.body.appendChild(stats.dom);

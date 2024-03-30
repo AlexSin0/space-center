@@ -2,9 +2,10 @@ import * as THREE from "three";
 import { Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import coastline from "./maps/coastline50.json";
-import { mapToVec3, Timer, stats } from "./3d-utils";
+import { mapToVec3, Timer } from "./3d-utils";
+import { stats, infoPanel } from "./hud";
 import { Satellite } from "./Satellite";
-import { EARTH_RADIUS } from "./3d-utils";
+import { EARTH_RADIUS, SCALE } from "./3d-utils";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(30);
@@ -12,30 +13,36 @@ const camera = new THREE.PerspectiveCamera(30);
 const pointer = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 
-const probeGeom = new THREE.CylinderGeometry(0.5, 0.5, 1, 6);
-const probeMat = new THREE.MeshBasicMaterial({
-  color: "#F00",
-  wireframe: true,
-});
+let selected: Satellite | null = null;
+const satellites: Satellite[] = [
+  new Satellite(
+    "Probe-1",
+    new Vector3(12, 1, 1),
+    new Vector3(0.01, 0.01, 0.04),
+    new THREE.CylinderGeometry(0.7, 0.7, 1.4, 6),
+    "#FA0"
+  ),
+  new Satellite(
+    "Probe-2",
+    new Vector3(8, 1, 1),
+    new Vector3(0.0, 0.0, 0.03),
+    new THREE.CylinderGeometry(0.6, 0.6, 1.2, 6),
+    "#F0C"
+  ),
+];
 
-const selectedProbeMat = new THREE.MeshBasicMaterial({
-  color: "#FFF",
-  wireframe: true,
-});
-
-const probe = new Satellite(
-  new Vector3(12, 1, 1),
-  new Vector3(0.01, 0.01, 0.04),
-  new THREE.Mesh(probeGeom, probeMat)
-);
+infoPanel.element.hidden = true;
 
 function setup(renderer: THREE.Renderer) {
-  // setup
   camera.position.setZ(30);
   blueMarble();
 
-  scene.add(probe.mesh);
-  probe.orbit.init(scene, "#F00");
+  scene.add(
+    ...satellites.map((v) => {
+      v.orbit.init(scene);
+      return v.mesh;
+    })
+  );
 
   // dev
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -48,24 +55,45 @@ function setup(renderer: THREE.Renderer) {
 }
 
 let wiggleMult = 1;
-const orbitWiggler = new Timer(4000, () => {
-  probe.velocity.y += 0.01 * wiggleMult;
+const orbitWiggler = new Timer(3000, () => {
+  satellites[0].velocity.y += 0.005 * wiggleMult;
   wiggleMult *= -1;
 
-  probe.orbit.init(scene, "#F00");
+  satellites[0].orbit.init(scene);
 });
 
 function update(time: number, deltaTime: number) {
   orbitWiggler.add(deltaTime);
-  probe.sim(2);
+  satellites.forEach((satellite) => satellite.sim(2));
 
+  if (selected) {
+    infoPanel.update(
+      selected.name,
+      selected.velocity.length() * SCALE,
+      (selected.pos.length() - EARTH_RADIUS) * SCALE
+    );
+  }
+}
+
+function onClick() {
   raycaster.setFromCamera(pointer, camera);
-  const intersects = raycaster.intersectObjects([probe.mesh], false);
+  const intersects = raycaster.intersectObjects(
+    satellites.map((v) => v.mesh),
+    false
+  );
 
-  if (intersects.some((v) => v.object == probe.mesh)) {
-    probe.mesh.material = selectedProbeMat;
-  } else {
-    probe.mesh.material = probeMat;
+  if (selected) {
+    selected.deselect();
+    selected = null;
+    infoPanel.element.hidden = true;
+  }
+
+  if (intersects.length > 0) {
+    const satellite = satellites.find((v) => intersects[0].object == v.mesh)!;
+
+    satellite.select();
+    selected = satellite;
+    infoPanel.element.hidden = false;
   }
 }
 
@@ -119,6 +147,8 @@ export function initRender(canvas: HTMLCanvasElement) {
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
   });
+
+  canvas.addEventListener("click", onClick);
 
   let lastTime = 0;
   let deltaTime = 0;

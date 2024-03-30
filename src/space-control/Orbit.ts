@@ -1,18 +1,22 @@
 import * as THREE from "three";
 import { Vector3 } from "three";
 import { Satellite } from "./Satellite";
-import { EARTH_G, meshFromPath } from "./3d-utils";
+import { EARTH_G } from "./3d-utils";
 
 export class Orbit {
-  constructor(public probe: Satellite) {}
+  constructor(public probe: Satellite, color: THREE.ColorRepresentation) {
+    this.mat = new THREE.LineBasicMaterial({ color: color });
+  }
+
+  public mat: THREE.Material;
 
   public path?: Vector3[];
   public apoapsis?: Vector3;
   public periapsis?: Vector3;
 
   public mesh?: THREE.Line;
-  public apoapsisMesh?: THREE.Object3D;
-  public periapsisMesh?: THREE.Object3D;
+  public apoapsisMesh?: THREE.Mesh;
+  public periapsisMesh?: THREE.Mesh;
 
   public calc(iterations = 80, step = 35) {
     const _pos = this.probe.pos.clone();
@@ -42,21 +46,23 @@ export class Orbit {
     this.path = orbitPath;
   }
 
-  public init(scene: THREE.Scene, color: THREE.ColorRepresentation) {
+  public init(scene: THREE.Scene) {
     this.calc();
-    this.initMesh(color);
+    this.initMesh();
     scene.add(this.mesh!, this.apoapsisMesh!, this.periapsisMesh!);
   }
 
-  public initMesh(color: THREE.ColorRepresentation) {
+  public initMesh() {
     if (!this.path || !this.apoapsis || !this.periapsis) return;
 
     // orbit path mesh
+    const geom = new THREE.BufferGeometry().setFromPoints(this.path);
+
     if (this.mesh) {
       this.mesh.geometry.dispose();
-      this.mesh.geometry = new THREE.BufferGeometry().setFromPoints(this.path);
+      this.mesh.geometry = geom;
     } else {
-      this.mesh = meshFromPath(this.path, color);
+      this.mesh = new THREE.Line(geom, this.mat);
     }
 
     // apsis' mesh

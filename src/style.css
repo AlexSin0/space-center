@@ -6,3 +6,16 @@ body {
 canvas {
   display: block;
 }
+
+.info-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  background: rgb(50, 50, 50);
+  color: white;
+  padding: 2em;
+  border-bottom-left-radius: 0.5em;
+  white-space: pre-line;
+  font-family: "Inter", sans-serif;
+}
