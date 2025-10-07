@@ -35,7 +35,7 @@ export class Timer {
   public add(count: number) {
     this.counter += count;
     if (this.counter >= this.every) {
-      this.counter -= this.every;
+      this.counter = 0;
       this.cb.call(this);
     }
   }

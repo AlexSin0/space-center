@@ -16,18 +16,21 @@ export class Satellite {
     public name: string,
     public pos: Vector3,
     public velocity: Vector3,
-    geom: THREE.BufferGeometry,
+
+    public mesh: THREE.Mesh,
     public color: THREE.ColorRepresentation
   ) {
-    this.mat = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
-    this.mesh = new THREE.Mesh(geom, this.mat);
-    this.mesh.position.copy(pos);
+    this.mat = new THREE.MeshBasicMaterial({
+      color: color,
+      wireframe: true,
+    });
+    this.mesh.material = this.mat;
 
+    this.mesh.position.copy(pos);
     this.orbit = new Orbit(this, color);
   }
 
   public mat: THREE.Material;
-  public mesh: THREE.Mesh;
   public orbit: Orbit;
 
   public isSelected = false;

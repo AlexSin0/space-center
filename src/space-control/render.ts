@@ -6,6 +6,7 @@ import { mapToVec3, Timer } from "./3d-utils";
 import { stats, infoPanel } from "./hud";
 import { Satellite } from "./Satellite";
 import { EARTH_RADIUS, SCALE } from "./3d-utils";
+import { OBJLoader } from "three/examples/jsm/Addons.js";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(30);
@@ -13,20 +14,25 @@ const camera = new THREE.PerspectiveCamera(30);
 const pointer = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 
+const loader = new OBJLoader();
+const rocketGroup = await loader.loadAsync("./models/rocket.obj");
+const rocketMesh = rocketGroup.children[0] as THREE.Mesh;
+rocketMesh.geometry.scale(0.7, 0.7, 0.7);
+
 let selected: Satellite | null = null;
 const satellites: Satellite[] = [
   new Satellite(
     "Probe-1",
     new Vector3(12, 1, 1),
     new Vector3(0.01, 0.01, 0.04),
-    new THREE.CylinderGeometry(0.7, 0.7, 1.4, 6),
+    rocketMesh.clone(),
     "#FA0"
   ),
   new Satellite(
     "Probe-2",
     new Vector3(8, 1, 1),
     new Vector3(0.0, 0.0, 0.03),
-    new THREE.CylinderGeometry(0.6, 0.6, 1.2, 6),
+    rocketMesh.clone(),
     "#F0C"
   ),
 ];
@@ -55,7 +61,7 @@ function setup(renderer: THREE.Renderer) {
 }
 
 let wiggleMult = 1;
-const orbitWiggler = new Timer(3000, () => {
+const orbitWiggleTimer = new Timer(3000, () => {
   satellites[0].velocity.y += 0.005 * wiggleMult;
   wiggleMult *= -1;
 
@@ -63,8 +69,17 @@ const orbitWiggler = new Timer(3000, () => {
 });
 
 function update(time: number, deltaTime: number) {
-  orbitWiggler.add(deltaTime);
-  satellites.forEach((satellite) => satellite.sim(2));
+  console.log(deltaTime);
+  orbitWiggleTimer.add(deltaTime);
+  satellites.forEach((sat) => sat.sim(2));
+  satellites.forEach((sat) =>
+    sat.mesh.setRotationFromQuaternion(
+      new THREE.Quaternion().setFromUnitVectors(
+        new Vector3(0, 1, 0),
+        sat.velocity.clone().normalize()
+      )
+    )
+  );
 
   if (selected) {
     infoPanel.update(
