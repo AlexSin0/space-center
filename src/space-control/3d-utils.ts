@@ -40,3 +40,32 @@ export class Timer {
     }
   }
 }
+
+export function starPath(size: number) {
+  const starCoefficient = 0.4;
+  const starPath: Vector3[] = [
+    new Vector3(0, size * 2),
+    new Vector3(size * starCoefficient, size * starCoefficient),
+    new Vector3(size * 2, 0),
+    new Vector3(size * starCoefficient, -size * starCoefficient),
+    new Vector3(0, -size * 2),
+    new Vector3(-size * starCoefficient, -size * starCoefficient),
+    new Vector3(-size * 2, 0),
+    new Vector3(-size * starCoefficient, size * starCoefficient),
+    new Vector3(0, size * 2),
+  ];
+
+  const mesh = meshFromPath(starPath, "#F00");
+  return mesh as THREE.Object3D;
+}
+
+export function locationMarker(
+  lat: number,
+  lon: number,
+  size: number,
+  mesh: THREE.Object3D = starPath(size)
+) {
+  mesh.position.copy(mapToVec3(lat, lon, EARTH_RADIUS));
+  mesh.lookAt(new Vector3(0, 0, 0));
+  return mesh;
+}

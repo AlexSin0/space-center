@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import coastline from "./maps/coastline50.json";
-import { mapToVec3, Timer } from "./3d-utils";
+import { locationMarker, mapToVec3, Timer } from "./3d-utils";
 import { stats, infoPanel } from "./hud";
 import { Satellite } from "./Satellite";
 import { EARTH_RADIUS, SCALE } from "./3d-utils";
@@ -18,6 +18,15 @@ const loader = new OBJLoader();
 const rocketGroup = await loader.loadAsync("./models/rocket.obj");
 const rocketMesh = rocketGroup.children[0] as THREE.Mesh;
 rocketMesh.geometry.scale(0.7, 0.7, 0.7);
+
+const markerGroup = await loader.loadAsync("./models/star.obj");
+const markerMesh = markerGroup.children[0] as THREE.Mesh;
+
+markerMesh.material = new THREE.MeshBasicMaterial({ color: "#F00" });
+markerMesh.geometry.scale(0.035, 0.035, 0.035);
+
+const marker = locationMarker(56.9475, 24.106389, 0.05, markerMesh);
+scene.add(marker);
 
 let selected: Satellite | null = null;
 const satellites: Satellite[] = [
