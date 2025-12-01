@@ -27,11 +27,15 @@ const pointer = new Vector2();
 const raycaster = new Raycaster();
 
 const loader = new OBJLoader();
-const rocketGroup = await loader.loadAsync("/models/rocket.obj");
+function loadModel(name: string) {
+  return loader.loadAsync(`/space-center/models/${name}`);
+}
+
+const rocketGroup = await loadModel("rocket.obj");
 const rocketMesh = rocketGroup.children[0] as Mesh;
 rocketMesh.geometry.scale(0.7, 0.7, 0.7);
 
-const markerGroup = await loader.loadAsync("/models/star.obj");
+const markerGroup = await loadModel("star.obj");
 const markerMesh = markerGroup.children[0] as Mesh;
 
 markerMesh.material = new MeshBasicMaterial({ color: "#F00" });
