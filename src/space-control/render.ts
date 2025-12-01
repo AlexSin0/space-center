@@ -1,28 +1,40 @@
-import * as THREE from "three";
-import { Vector3 } from "three";
+import {
+  BufferGeometry,
+  Line,
+  LineBasicMaterial,
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera,
+  Quaternion,
+  Raycaster,
+  Scene,
+  SphereGeometry,
+  Vector2,
+  Vector3,
+  WebGLRenderer,
+} from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import coastline from "./maps/coastline50.json";
 import { locationMarker, mapToVec3, Timer } from "./3d-utils";
 import { stats, infoPanel } from "./hud";
 import { Satellite } from "./Satellite";
 import { EARTH_RADIUS, SCALE } from "./3d-utils";
-import { OBJLoader } from "three/examples/jsm/Addons.js";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(30);
+const scene = new Scene();
+const camera = new PerspectiveCamera(30);
 
-const pointer = new THREE.Vector2();
-const raycaster = new THREE.Raycaster();
+const pointer = new Vector2();
+const raycaster = new Raycaster();
 
 const loader = new OBJLoader();
-const rocketGroup = await loader.loadAsync("./models/rocket.obj");
-const rocketMesh = rocketGroup.children[0] as THREE.Mesh;
+const rocketGroup = await loader.loadAsync("/models/rocket.obj");
+const rocketMesh = rocketGroup.children[0] as Mesh;
 rocketMesh.geometry.scale(0.7, 0.7, 0.7);
 
-const markerGroup = await loader.loadAsync("./models/star.obj");
-const markerMesh = markerGroup.children[0] as THREE.Mesh;
+const markerGroup = await loader.loadAsync("/models/star.obj");
+const markerMesh = markerGroup.children[0] as Mesh;
 
-markerMesh.material = new THREE.MeshBasicMaterial({ color: "#F00" });
+markerMesh.material = new MeshBasicMaterial({ color: "#F00" });
 markerMesh.geometry.scale(0.035, 0.035, 0.035);
 
 const marker = locationMarker(56.9475, 24.106389, 0.05, markerMesh);
@@ -48,7 +60,7 @@ const satellites: Satellite[] = [
 
 infoPanel.element.hidden = true;
 
-function setup(renderer: THREE.Renderer) {
+function setup(renderer: WebGLRenderer) {
   camera.position.setZ(30);
   blueMarble();
 
@@ -64,8 +76,8 @@ function setup(renderer: THREE.Renderer) {
   controls.update();
   controls.minDistance = EARTH_RADIUS + 0.1;
 
-  const gridHelper = new THREE.GridHelper(50, 10);
-  const axesHelper = new THREE.AxesHelper(16);
+  // const gridHelper = new GridHelper(50, 10);
+  // const axesHelper = new AxesHelper(16);
   // scene.add(gridHelper, axesHelper);
 }
 
@@ -77,13 +89,13 @@ const orbitWiggleTimer = new Timer(3000, () => {
   satellites[0].orbit.init(scene);
 });
 
-function update(time: number, deltaTime: number) {
+function update(_time: number, deltaTime: number) {
   console.log(deltaTime);
   orbitWiggleTimer.add(deltaTime);
   satellites.forEach((sat) => sat.sim(2));
   satellites.forEach((sat) =>
     sat.mesh.setRotationFromQuaternion(
-      new THREE.Quaternion().setFromUnitVectors(
+      new Quaternion().setFromUnitVectors(
         new Vector3(0, 1, 0),
         sat.velocity.clone().normalize()
       )
@@ -122,39 +134,47 @@ function onClick() {
 }
 
 function blueMarble() {
-  const lineMat = new THREE.LineBasicMaterial({ color: "#0F0" });
-  const wireMat = new THREE.MeshBasicMaterial({
+  importCoastline();
+
+  const wireMat = new MeshBasicMaterial({
     color: "#035",
     wireframe: true,
   });
 
-  const sphereGeom = new THREE.SphereGeometry(EARTH_RADIUS - 0.05);
-  const sphereMesh = new THREE.Mesh(sphereGeom, wireMat);
+  const sphereGeom = new SphereGeometry(EARTH_RADIUS - 0.05);
+  const sphereMesh = new Mesh(sphereGeom, wireMat);
   scene.add(sphereMesh);
 
-  const baseMat = new THREE.MeshBasicMaterial({
+  const baseMat = new MeshBasicMaterial({
     color: "#000",
     transparent: false,
     opacity: 0.6,
   });
-  const baseGeom = new THREE.SphereGeometry(EARTH_RADIUS - 0.1);
-  const baseMesh = new THREE.Mesh(baseGeom, baseMat);
+  const baseGeom = new SphereGeometry(EARTH_RADIUS - 0.1);
+  const baseMesh = new Mesh(baseGeom, baseMat);
   scene.add(baseMesh);
+}
 
-  const lines = coastline.features.map((feature) => {
-    const cords = feature.geometry.coordinates;
-    const path = cords.map((point) =>
-      mapToVec3(point[1], point[0], EARTH_RADIUS)
-    );
-    const geometry = new THREE.BufferGeometry().setFromPoints(path);
-    const line = new THREE.Line(geometry, lineMat);
-    return line;
+function importCoastline() {
+  const lineMat = new LineBasicMaterial({ color: "#0F0" });
+
+  import("./maps/coastline50.json").then((coastline) => {
+    const lines = coastline.features.map((feature) => {
+      const cords = feature.geometry.coordinates;
+      const path = cords.map((point) =>
+        mapToVec3(point[1], point[0], EARTH_RADIUS)
+      );
+      const geometry = new BufferGeometry().setFromPoints(path);
+      const line = new Line(geometry, lineMat);
+      return line;
+    });
+
+    scene.add(...lines);
   });
-  scene.add(...lines);
 }
 
 export function initRender(canvas: HTMLCanvasElement) {
-  const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+  const renderer = new WebGLRenderer({ canvas: canvas });
   renderer.setPixelRatio(window.devicePixelRatio);
 
   function resizeCanvas() {

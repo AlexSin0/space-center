@@ -1,12 +1,18 @@
-import * as THREE from "three";
-import { Vector3 } from "three";
+import {
+  ColorRepresentation,
+  LineBasicMaterial,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  Vector3,
+} from "three";
 import { EARTH_G } from "./3d-utils";
 import { Orbit } from "./Orbit";
 
-const selectColor: THREE.ColorRepresentation = "#F00";
+const selectColor: ColorRepresentation = "#F00";
 
-const selectPathMat = new THREE.LineBasicMaterial({ color: selectColor });
-const selectProbeMat = new THREE.MeshBasicMaterial({
+const selectPathMat = new LineBasicMaterial({ color: selectColor });
+const selectProbeMat = new MeshBasicMaterial({
   color: selectColor,
   wireframe: true,
 });
@@ -17,10 +23,10 @@ export class Satellite {
     public pos: Vector3,
     public velocity: Vector3,
 
-    public mesh: THREE.Mesh,
-    public color: THREE.ColorRepresentation
+    public mesh: Mesh,
+    public color: ColorRepresentation
   ) {
-    this.mat = new THREE.MeshBasicMaterial({
+    this.mat = new MeshBasicMaterial({
       color: color,
       wireframe: true,
     });
@@ -30,7 +36,7 @@ export class Satellite {
     this.orbit = new Orbit(this, color);
   }
 
-  public mat: THREE.Material;
+  public mat: Material;
   public orbit: Orbit;
 
   public isSelected = false;

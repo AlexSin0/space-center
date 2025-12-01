@@ -1,5 +1,11 @@
-import * as THREE from "three";
-import { Vector3 } from "three";
+import {
+  BufferGeometry,
+  ColorRepresentation,
+  Line,
+  LineBasicMaterial,
+  Object3D,
+  Vector3,
+} from "three";
 
 export const SCALE = 10 ** 6;
 
@@ -19,11 +25,11 @@ export function mapToVec3(lat: number, lon: number, radius: number) {
 
 export function meshFromPath(
   path: Vector3[],
-  color: THREE.ColorRepresentation = "#FFF"
+  color: ColorRepresentation = "#FFF"
 ) {
-  const mat = new THREE.LineBasicMaterial({ color: color });
-  const geom = new THREE.BufferGeometry().setFromPoints(path);
-  const mesh = new THREE.Line(geom, mat);
+  const mat = new LineBasicMaterial({ color: color });
+  const geom = new BufferGeometry().setFromPoints(path);
+  const mesh = new Line(geom, mat);
   return mesh;
 }
 
@@ -56,14 +62,14 @@ export function starPath(size: number) {
   ];
 
   const mesh = meshFromPath(starPath, "#F00");
-  return mesh as THREE.Object3D;
+  return mesh as Object3D;
 }
 
 export function locationMarker(
   lat: number,
   lon: number,
   size: number,
-  mesh: THREE.Object3D = starPath(size)
+  mesh: Object3D = starPath(size)
 ) {
   mesh.position.copy(mapToVec3(lat, lon, EARTH_RADIUS));
   mesh.lookAt(new Vector3(0, 0, 0));

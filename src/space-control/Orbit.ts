@@ -1,22 +1,32 @@
-import * as THREE from "three";
-import { Vector3 } from "three";
+import {
+  BufferGeometry,
+  ColorRepresentation,
+  Line,
+  LineBasicMaterial,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  Scene,
+  SphereGeometry,
+  Vector3,
+} from "three";
 import { Satellite } from "./Satellite";
 import { EARTH_G } from "./3d-utils";
 
 export class Orbit {
-  constructor(public probe: Satellite, color: THREE.ColorRepresentation) {
-    this.mat = new THREE.LineBasicMaterial({ color: color });
+  constructor(public probe: Satellite, color: ColorRepresentation) {
+    this.mat = new LineBasicMaterial({ color: color });
   }
 
-  public mat: THREE.Material;
+  public mat: Material;
 
   public path?: Vector3[];
   public apoapsis?: Vector3;
   public periapsis?: Vector3;
 
-  public mesh?: THREE.Line;
-  public apoapsisMesh?: THREE.Mesh;
-  public periapsisMesh?: THREE.Mesh;
+  public mesh?: Line;
+  public apoapsisMesh?: Mesh;
+  public periapsisMesh?: Mesh;
 
   public calc(iterations = 80, step = 35) {
     const _pos = this.probe.pos.clone();
@@ -46,7 +56,7 @@ export class Orbit {
     this.path = orbitPath;
   }
 
-  public init(scene: THREE.Scene) {
+  public init(scene: Scene) {
     this.calc();
     this.initMesh();
     scene.add(this.mesh!, this.apoapsisMesh!, this.periapsisMesh!);
@@ -56,30 +66,30 @@ export class Orbit {
     if (!this.path || !this.apoapsis || !this.periapsis) return;
 
     // orbit path mesh
-    const geom = new THREE.BufferGeometry().setFromPoints(this.path);
+    const geom = new BufferGeometry().setFromPoints(this.path);
 
     if (this.mesh) {
       this.mesh.geometry.dispose();
       this.mesh.geometry = geom;
     } else {
-      this.mesh = new THREE.Line(geom, this.mat);
+      this.mesh = new Line(geom, this.mat);
     }
 
     // apsis' mesh
-    const apsisGeom = new THREE.SphereGeometry(0.2, 6, 6);
+    const apsisGeom = new SphereGeometry(0.2, 6, 6);
 
     if (!this.apoapsisMesh) {
-      const aMat = new THREE.MeshBasicMaterial({
+      const aMat = new MeshBasicMaterial({
         color: "#F80",
       });
-      this.apoapsisMesh = new THREE.Mesh(apsisGeom, aMat);
+      this.apoapsisMesh = new Mesh(apsisGeom, aMat);
     }
 
     if (!this.periapsisMesh) {
-      const pMat = new THREE.MeshBasicMaterial({
+      const pMat = new MeshBasicMaterial({
         color: "#80F",
       });
-      this.periapsisMesh = new THREE.Mesh(apsisGeom, pMat);
+      this.periapsisMesh = new Mesh(apsisGeom, pMat);
     }
 
     this.apoapsisMesh.position.copy(this.apoapsis);
